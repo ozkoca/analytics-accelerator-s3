@@ -48,51 +48,26 @@ public class StreamUtils {
     InputStream inStream = objectContent.getStream();
     ByteArrayOutputStream outStream = new ByteArrayOutputStream();
     byte[] buffer = new byte[BUFFER_SIZE];
-
-    ExecutorService executorService = Executors.newSingleThreadExecutor();
-    Future<Void> future =
-        executorService.submit(
-            () -> {
-              try {
-                int numBytesRead;
-                LoggingUtil.LogBuilder logger =
-                    LoggingUtil.start(
-                            LOG, "toByteArray: Starting to read from InputStream for Block")
-                        .withParam("s3Uri", objectKey.s3URI)
-                        .withParam("etag", objectKey.etag)
-                        .withParam("start", range.getStart())
-                        .withParam("end", range.getEnd())
-                        .withThreadInfo()
-                        .withTiming();
-                logger.logStart();
-                while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
-                  outStream.write(buffer, 0, numBytesRead);
-                }
-                logger.logEnd();
-                return null;
-              } finally {
-                inStream.close();
-              }
-            });
-
     try {
-      future.get(timeoutMs, TimeUnit.MILLISECONDS);
-
-    } catch (TimeoutException e) {
-      future.cancel(true);
-      LOG.info(
-          "Reading from InputStream has timed out for Block s3URI={}, etag={}, start={}, end={}",
-          objectKey.s3URI,
-          objectKey.etag,
-          range.getStart(),
-          range.getEnd());
-      throw new TimeoutException("Read operation timed out");
-    } catch (Exception e) {
-      throw new IOException("Error reading stream", e);
+      int numBytesRead;
+      LoggingUtil.LogBuilder logger =
+          LoggingUtil.start(LOG, "toByteArray: Starting to read from InputStream for Block")
+              .withParam("s3Uri", objectKey.s3URI)
+              .withParam("etag", objectKey.etag)
+              .withParam("start", range.getStart())
+              .withParam("end", range.getEnd())
+              .withThreadInfo()
+              .withTiming();
+      logger.logStart();
+      while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
+        outStream.write(buffer, 0, numBytesRead);
+      }
+      logger.logEnd();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     } finally {
-      executorService.shutdown();
+      inStream.close();
     }
-
     return outStream.toByteArray();
   }
 }
