@@ -55,12 +55,6 @@ public class StreamUtils {
             () -> {
               try {
                 int numBytesRead;
-                LOG.info(
-                    "Starting to read from InputStream for Block s3URI={}, etag={}, start={}, end={}",
-                    objectKey.s3URI,
-                    objectKey.etag,
-                    range.getStart(),
-                    range.getEnd());
                 LoggingUtil.LogBuilder logger =
                     LoggingUtil.start(
                             LOG, "toByteArray: Starting to read from InputStream for Block")
@@ -75,13 +69,6 @@ public class StreamUtils {
                   outStream.write(buffer, 0, numBytesRead);
                 }
                 logger.logEnd();
-                LOG.info(
-                    "Successfully read from InputStream for Block numBytesRead={}, s3URI={}, etag={}, start={}, end={}",
-                    numBytesRead,
-                    objectKey.s3URI,
-                    objectKey.etag,
-                    range.getStart(),
-                    range.getEnd());
                 return null;
               } finally {
                 inStream.close();

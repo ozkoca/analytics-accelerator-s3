@@ -23,6 +23,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import lombok.Getter;
 import lombok.NonNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
@@ -44,6 +46,8 @@ public class S3SdkObjectClient implements ObjectClient {
   @NonNull private final Telemetry telemetry;
   @NonNull private final UserAgent userAgent;
   private final boolean closeAsyncClient;
+
+  private static final Logger LOG = LoggerFactory.getLogger(S3SdkObjectClient.class);
 
   /**
    * Create an instance of a S3 client, with default configuration, for interaction with Amazon S3
@@ -170,6 +174,14 @@ public class S3SdkObjectClient implements ObjectClient {
             .putHeader(HEADER_USER_AGENT, this.userAgent.getUserAgent())
             .build());
 
+    LOG.info(
+        "SDKObjectClient getObject STARTED uri: {}, range: {}, threadId: {}, threadName: {}, time: {}",
+        getRequest.getS3Uri(),
+        getRequest.getRange(),
+        Thread.currentThread().getId(),
+        Thread.currentThread().getName(),
+        System.currentTimeMillis());
+
     return this.telemetry.measureCritical(
         () ->
             Operation.builder()
@@ -181,7 +193,25 @@ public class S3SdkObjectClient implements ObjectClient {
         s3AsyncClient
             .getObject(builder.build(), AsyncResponseTransformer.toBlockingInputStream())
             .thenApply(
-                responseInputStream -> ObjectContent.builder().stream(responseInputStream).build())
+                responseInputStream -> {
+                  LOG.info(
+                      "SDKObjectClient thenApply STARTED uri: {}, range: {}, threadId: {}, threadName: {}, time: {}",
+                      getRequest.getS3Uri(),
+                      getRequest.getRange(),
+                      Thread.currentThread().getId(),
+                      Thread.currentThread().getName(),
+                      System.currentTimeMillis());
+                  ObjectContent result =
+                      ObjectContent.builder().stream(responseInputStream).build();
+                  LOG.info(
+                      "SDKObjectClient thenApply COMPLETED uri: {}, range: {}, threadId: {}, threadName: {}, time: {}",
+                      getRequest.getS3Uri(),
+                      getRequest.getRange(),
+                      Thread.currentThread().getId(),
+                      Thread.currentThread().getName(),
+                      System.currentTimeMillis());
+                  return result;
+                })
             .exceptionally(handleException(getRequest.getS3Uri())));
   }
 
