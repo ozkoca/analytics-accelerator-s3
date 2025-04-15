@@ -28,7 +28,7 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
  */
 public class ParquetLogicalIOImpl extends DefaultLogicalIOImpl {
   // Dependencies
-  private final ParquetPrefetcher parquetPrefetcher;
+  // private final ParquetPrefetcher parquetPrefetcher;
 
   /**
    * Constructs an instance of LogicalIOImpl.
@@ -48,10 +48,10 @@ public class ParquetLogicalIOImpl extends DefaultLogicalIOImpl {
     super(s3Uri, physicalIO, telemetry);
 
     // Initialise prefetcher and start prefetching
-    this.parquetPrefetcher =
-        new ParquetPrefetcher(
-            s3Uri, physicalIO, telemetry, logicalIOConfiguration, parquetColumnPrefetchStore);
-    this.parquetPrefetcher.prefetchFooterAndBuildMetadata();
+    //    this.parquetPrefetcher =
+    //        new ParquetPrefetcher(
+    //            s3Uri, physicalIO, telemetry, logicalIOConfiguration, parquetColumnPrefetchStore);
+    //    this.parquetPrefetcher.prefetchFooterAndBuildMetadata();
   }
 
   /**
@@ -67,8 +67,8 @@ public class ParquetLogicalIOImpl extends DefaultLogicalIOImpl {
   @Override
   public int read(byte[] buf, int off, int len, long position) throws IOException {
     // Perform async prefetching before doing the blocking read
-    this.parquetPrefetcher.prefetchRemainingColumnChunk(position, len);
-    this.parquetPrefetcher.addToRecentColumnList(position, len);
+    // this.parquetPrefetcher.prefetchRemainingColumnChunk(position, len);
+    // this.parquetPrefetcher.addToRecentColumnList(position, len);
 
     return super.read(buf, off, len, position);
   }
