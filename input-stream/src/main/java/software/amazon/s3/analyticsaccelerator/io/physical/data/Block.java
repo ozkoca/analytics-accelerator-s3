@@ -17,8 +17,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
@@ -55,6 +54,7 @@ public class Block implements Closeable {
   private final Referrer referrer;
   private final long readTimeout;
   private final int readRetryCount;
+  private final Executor ioThreadPool;
 
   @Getter private final long start;
   @Getter private final long end;
@@ -100,7 +100,8 @@ public class Block implements Closeable {
         readMode,
         readTimeout,
         readRetryCount,
-        null);
+        null,
+        Executors.newFixedThreadPool(16));
   }
 
   /**
@@ -116,6 +117,7 @@ public class Block implements Closeable {
    * @param readTimeout Timeout duration (in milliseconds) for reading a block object from S3
    * @param readRetryCount Number of retries for block read failure
    * @param streamContext contains audit headers to be attached in the request header
+   * @param ioThreadPool thread pool
    */
   public Block(
       @NonNull ObjectKey objectKey,
@@ -127,7 +129,8 @@ public class Block implements Closeable {
       @NonNull ReadMode readMode,
       long readTimeout,
       int readRetryCount,
-      StreamContext streamContext)
+      StreamContext streamContext,
+      Executor ioThreadPool)
       throws IOException {
 
     Preconditions.checkArgument(
@@ -153,6 +156,7 @@ public class Block implements Closeable {
     this.referrer = new Referrer(range.toHttpString(), readMode);
     this.readTimeout = readTimeout;
     this.readRetryCount = readRetryCount;
+    this.ioThreadPool = ioThreadPool;
 
     generateSourceAndData();
   }
@@ -184,16 +188,29 @@ public class Block implements Closeable {
 
         // Handle IOExceptions when converting stream to byte array
         this.data =
-            this.source.thenApply(
+            this.source.thenApplyAsync(
                 objectContent -> {
+                  LoggingUtil.LogBuilder logger =
+                      LoggingUtil.start(LOG, "Block thenApplyAsync")
+                          .withParam("s3Uri", objectKey.getS3URI())
+                          .withParam("etag", objectKey.getEtag())
+                          .withParam("start", range.getStart())
+                          .withParam("end", range.getEnd())
+                          .withThreadInfo()
+                          .withTiming();
+                  logger.logStart();
                   try {
-                    return StreamUtils.toByteArray(
-                        objectContent, this.objectKey, this.range, this.readTimeout);
+                    byte[] result =
+                        StreamUtils.toByteArray(
+                            objectContent, this.objectKey, this.range, this.readTimeout);
+                    logger.logEnd();
+                    return result;
                   } catch (IOException | TimeoutException e) {
                     throw new RuntimeException(
                         "Error while converting InputStream to byte array", e);
                   }
-                });
+                },
+                this.ioThreadPool);
 
         return; // Successfully generated source and data, exit loop
       } catch (RuntimeException e) {

@@ -23,6 +23,7 @@ import static org.mockito.Mockito.when;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
@@ -55,23 +56,48 @@ public class BlobStoreTest {
     MetadataStore metadataStore = mock(MetadataStore.class);
     when(metadataStore.get(any()))
         .thenReturn(ObjectMetadata.builder().contentLength(TEST_DATA.length()).etag(ETAG).build());
-    blobStore = new BlobStore(objectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+    blobStore =
+        new BlobStore(
+            objectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            Executors.newFixedThreadPool(4));
   }
 
   @Test
   void testCreateBoundaries() {
     assertThrows(
         NullPointerException.class,
-        () -> new BlobStore(null, mock(Telemetry.class), mock(PhysicalIOConfiguration.class)));
+        () ->
+            new BlobStore(
+                null,
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class),
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         NullPointerException.class,
-        () -> new BlobStore(null, mock(Telemetry.class), mock(PhysicalIOConfiguration.class)));
+        () ->
+            new BlobStore(
+                null,
+                mock(Telemetry.class),
+                mock(PhysicalIOConfiguration.class),
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         NullPointerException.class,
-        () -> new BlobStore(mock(ObjectClient.class), null, mock(PhysicalIOConfiguration.class)));
+        () ->
+            new BlobStore(
+                mock(ObjectClient.class),
+                null,
+                mock(PhysicalIOConfiguration.class),
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         NullPointerException.class,
-        () -> new BlobStore(mock(ObjectClient.class), mock(Telemetry.class), null));
+        () ->
+            new BlobStore(
+                mock(ObjectClient.class),
+                mock(Telemetry.class),
+                null,
+                Executors.newFixedThreadPool(4)));
   }
 
   @Test

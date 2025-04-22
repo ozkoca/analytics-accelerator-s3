@@ -21,6 +21,7 @@ import static org.mockito.Mockito.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Executors;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
@@ -117,7 +118,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                null));
+                null,
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -131,7 +133,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                null));
+                null,
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -145,7 +148,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                null));
+                null,
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -159,7 +163,8 @@ public class BlockTest {
                 null,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                null));
+                null,
+                Executors.newFixedThreadPool(4)));
   }
 
   @Test
@@ -179,7 +184,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                null));
+                null,
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -193,7 +199,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                null));
+                null,
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         IllegalArgumentException.class,
         () ->
@@ -233,7 +240,8 @@ public class BlockTest {
                 ReadMode.SYNC,
                 DEFAULT_READ_TIMEOUT,
                 DEFAULT_READ_RETRY_COUNT,
-                null));
+                null,
+                Executors.newFixedThreadPool(4)));
   }
 
   @SneakyThrows

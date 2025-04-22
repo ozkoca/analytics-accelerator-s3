@@ -16,6 +16,7 @@
 package software.amazon.s3.analyticsaccelerator;
 
 import java.io.IOException;
+import java.util.concurrent.Executors;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetColumnPrefetchStore;
@@ -37,7 +38,11 @@ public class S3SeekableInputStreamTestBase {
   protected final MetadataStore metadataStore =
       new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
   protected final BlobStore blobStore =
-      new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, physicalIOConfiguration);
+      new BlobStore(
+          fakeObjectClient,
+          TestTelemetry.DEFAULT,
+          physicalIOConfiguration,
+          Executors.newFixedThreadPool(4));
   protected final LogicalIOConfiguration logicalIOConfiguration = LogicalIOConfiguration.DEFAULT;
 
   protected final LogicalIO fakeLogicalIO;

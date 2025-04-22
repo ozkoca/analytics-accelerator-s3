@@ -20,6 +20,7 @@ import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
@@ -38,6 +39,7 @@ public class BlobStore implements Closeable {
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
   private final PhysicalIOConfiguration configuration;
+  private final Executor ioThreadPool;
 
   /**
    * Construct an instance of BlobStore.
@@ -45,11 +47,13 @@ public class BlobStore implements Closeable {
    * @param objectClient object client capable of interacting with the underlying object store
    * @param telemetry an instance of {@link Telemetry} to use
    * @param configuration the PhysicalIO configuration
+   * @param ioThreadPool thread pool
    */
   public BlobStore(
       @NonNull ObjectClient objectClient,
       @NonNull Telemetry telemetry,
-      @NonNull PhysicalIOConfiguration configuration) {
+      @NonNull PhysicalIOConfiguration configuration,
+      @NonNull Executor ioThreadPool) {
     this.objectClient = objectClient;
     this.telemetry = telemetry;
     this.blobMap =
@@ -61,6 +65,7 @@ public class BlobStore implements Closeable {
               }
             });
     this.configuration = configuration;
+    this.ioThreadPool = ioThreadPool;
   }
 
   /**
@@ -79,7 +84,13 @@ public class BlobStore implements Closeable {
                 uri,
                 metadata,
                 new BlockManager(
-                    uri, objectClient, metadata, telemetry, configuration, streamContext),
+                    uri,
+                    objectClient,
+                    metadata,
+                    telemetry,
+                    configuration,
+                    streamContext,
+                    ioThreadPool),
                 telemetry));
   }
 

@@ -22,6 +22,7 @@ import static org.mockito.Mockito.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.awscore.exception.AwsErrorDetails;
 import software.amazon.awssdk.awscore.exception.AwsServiceException;
@@ -121,7 +122,11 @@ public class PhysicalIOImplTest {
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            Executors.newFixedThreadPool(4));
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
 
@@ -140,7 +145,11 @@ public class PhysicalIOImplTest {
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            Executors.newFixedThreadPool(4));
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
 
@@ -156,7 +165,11 @@ public class PhysicalIOImplTest {
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            Executors.newFixedThreadPool(4));
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
 
@@ -171,7 +184,11 @@ public class PhysicalIOImplTest {
     MetadataStore metadataStore =
         new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(
+            fakeObjectClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            Executors.newFixedThreadPool(4));
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
     byte[] buffer = new byte[5];
@@ -209,7 +226,11 @@ public class PhysicalIOImplTest {
     ObjectMetadata objectMetadata = ObjectMetadata.builder().contentLength(100).etag(etag).build();
     metadataStore.storeObjectMetadata(s3URI, objectMetadata);
     BlobStore blobStore =
-        new BlobStore(client, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(
+            client,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            Executors.newFixedThreadPool(4));
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
 
@@ -237,7 +258,11 @@ public class PhysicalIOImplTest {
     ObjectMetadata objectMetadata = ObjectMetadata.builder().contentLength(100).etag(etag).build();
     metadataStore.storeObjectMetadata(s3URI, objectMetadata);
     BlobStore blobStore =
-        new BlobStore(client, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(
+            client,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            Executors.newFixedThreadPool(4));
     PhysicalIOImpl physicalIOImplV2 =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
 

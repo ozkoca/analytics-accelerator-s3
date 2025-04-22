@@ -21,6 +21,7 @@ import static org.mockito.Mockito.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
@@ -138,7 +139,11 @@ public class ParquetLogicalIOImplTest {
     MetadataStore metadataStore =
         new MetadataStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
     BlobStore blobStore =
-        new BlobStore(mockClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
+        new BlobStore(
+            mockClient,
+            TestTelemetry.DEFAULT,
+            PhysicalIOConfiguration.DEFAULT,
+            Executors.newFixedThreadPool(4));
     PhysicalIOImpl physicalIO =
         new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
     assertDoesNotThrow(

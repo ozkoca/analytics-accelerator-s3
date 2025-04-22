@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
@@ -176,7 +177,8 @@ public class BlobTest {
             fakeObjectClient,
             mockMetadataStore,
             TestTelemetry.DEFAULT,
-            PhysicalIOConfiguration.DEFAULT);
+            PhysicalIOConfiguration.DEFAULT,
+            Executors.newFixedThreadPool(4));
 
     return new Blob(objectKey, mockMetadataStore, blockManager, TestTelemetry.DEFAULT);
   }

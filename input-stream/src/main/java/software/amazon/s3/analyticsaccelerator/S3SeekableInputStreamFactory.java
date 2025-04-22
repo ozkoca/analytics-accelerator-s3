@@ -16,11 +16,14 @@
 package software.amazon.s3.analyticsaccelerator;
 
 import java.io.IOException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.s3.analyticsaccelerator.common.NamedThreadFactory;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOImpl;
@@ -53,6 +56,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final BlobStore objectBlobStore;
   private final Telemetry telemetry;
   private final ObjectFormatSelector objectFormatSelector;
+  private final Executor ioThreadPool;
 
   private static final Logger LOG = LoggerFactory.getLogger(S3SeekableInputStreamFactory.class);
 
@@ -75,8 +79,10 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     this.objectMetadataStore =
         new MetadataStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
     this.objectFormatSelector = new ObjectFormatSelector(configuration.getLogicalIOConfiguration());
+    this.ioThreadPool = Executors.newFixedThreadPool(200, new NamedThreadFactory("aal-io-thread"));
     this.objectBlobStore =
-        new BlobStore(objectClient, telemetry, configuration.getPhysicalIOConfiguration());
+        new BlobStore(
+            objectClient, telemetry, configuration.getPhysicalIOConfiguration(), ioThreadPool);
   }
 
   /**

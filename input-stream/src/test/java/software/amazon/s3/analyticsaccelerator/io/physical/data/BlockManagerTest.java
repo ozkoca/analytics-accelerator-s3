@@ -29,6 +29,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.services.s3.model.S3Exception;
@@ -58,7 +59,8 @@ public class BlockManagerTest {
                 mock(ObjectClient.class),
                 mock(ObjectMetadata.class),
                 mock(Telemetry.class),
-                mock(PhysicalIOConfiguration.class)));
+                mock(PhysicalIOConfiguration.class),
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -67,7 +69,8 @@ public class BlockManagerTest {
                 null,
                 mock(ObjectMetadata.class),
                 mock(Telemetry.class),
-                mock(PhysicalIOConfiguration.class)));
+                mock(PhysicalIOConfiguration.class),
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -76,7 +79,8 @@ public class BlockManagerTest {
                 mock(ObjectClient.class),
                 null,
                 mock(Telemetry.class),
-                mock(PhysicalIOConfiguration.class)));
+                mock(PhysicalIOConfiguration.class),
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -85,7 +89,8 @@ public class BlockManagerTest {
                 mock(ObjectClient.class),
                 mock(ObjectMetadata.class),
                 null,
-                mock(PhysicalIOConfiguration.class)));
+                mock(PhysicalIOConfiguration.class),
+                Executors.newFixedThreadPool(4)));
     assertThrows(
         NullPointerException.class,
         () ->
@@ -94,7 +99,8 @@ public class BlockManagerTest {
                 mock(ObjectClient.class),
                 mock(ObjectMetadata.class),
                 mock(Telemetry.class),
-                null));
+                null,
+                Executors.newFixedThreadPool(4)));
   }
 
   @Test
@@ -286,6 +292,11 @@ public class BlockManagerTest {
     metadataStore = ObjectMetadata.builder().contentLength(size).etag(ETAG).build();
 
     return new BlockManager(
-        objectKey, objectClient, metadataStore, TestTelemetry.DEFAULT, configuration);
+        objectKey,
+        objectClient,
+        metadataStore,
+        TestTelemetry.DEFAULT,
+        configuration,
+        Executors.newFixedThreadPool(4));
   }
 }

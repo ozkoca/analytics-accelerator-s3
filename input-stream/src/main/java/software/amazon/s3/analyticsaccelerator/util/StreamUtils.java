@@ -50,19 +50,74 @@ public class StreamUtils {
     byte[] buffer = new byte[BUFFER_SIZE];
     try {
       int numBytesRead;
+      long totalBytesRead = 0;
+      long maxReadTime = 0;
+      long maxReadBytes = 0;
+      long minReadBytes = Long.MAX_VALUE;
+      long totalReadTime = 0;
+      long maxWriteTime = 0;
+      long totalWriteTime = 0;
+      int iteration = 0;
+      int maxReadIteration = 0;
+      int maxWriteIteration = 0;
+
       LoggingUtil.LogBuilder logger =
           LoggingUtil.start(LOG, "toByteArray: Starting to read from InputStream for Block")
               .withParam("s3Uri", objectKey.s3URI)
-              .withParam("etag", objectKey.etag)
               .withParam("start", range.getStart())
               .withParam("end", range.getEnd())
               .withThreadInfo()
               .withTiming();
       logger.logStart();
-      while ((numBytesRead = inStream.read(buffer, 0, buffer.length)) != -1) {
+
+      while (true) {
+        iteration++;
+        long readStart = System.currentTimeMillis();
+        numBytesRead = inStream.read(buffer, 0, buffer.length);
+        long readTime = System.currentTimeMillis() - readStart;
+
+        if (readTime > maxReadTime) {
+          maxReadTime = readTime;
+          maxReadIteration = iteration;
+        }
+
+        totalReadTime += readTime;
+        totalBytesRead += numBytesRead;
+        maxReadBytes = Math.max(maxReadBytes, numBytesRead);
+        minReadBytes = Math.min(minReadBytes, numBytesRead);
+
+        if (numBytesRead == -1) break;
+
+        long writeStart = System.currentTimeMillis();
         outStream.write(buffer, 0, numBytesRead);
+        long writeTime = System.currentTimeMillis() - writeStart;
+
+        if (writeTime > maxWriteTime) {
+          maxWriteTime = writeTime;
+          maxWriteIteration = iteration;
+        }
+        totalWriteTime += writeTime;
       }
+
       logger.logEnd();
+      LOG.info(
+          "StreamUtils toByteArray statistics: s3Uri: {}, start: {}, bytesRead: {}, maxReadTime: {}, maxReadBytes: {}, totalReadTime: {}, avgReadTime: {}, readThroughput: {}, maxWriteTime: {}, totalWriteTime: {}, avgWriteTime: {}, writeThroughput: {}, iteration: {}, maxReadIteration: {}, maxWriteIteration: {}, time: {}",
+          objectKey.s3URI,
+          range.getStart(),
+          totalBytesRead,
+          maxReadTime,
+          maxReadBytes,
+          totalReadTime,
+          iteration == 0 ? 0 : (totalReadTime / (double) iteration),
+          totalReadTime == 0 ? 0 : (totalBytesRead / (double) totalReadTime),
+          maxWriteTime,
+          totalWriteTime,
+          iteration == 0 ? 0 : (totalWriteTime / (double) iteration),
+          totalWriteTime == 0 ? 0 : (totalBytesRead / (double) totalWriteTime),
+          iteration,
+          maxReadIteration,
+          maxWriteIteration,
+          System.currentTimeMillis());
     } catch (IOException e) {
       throw new RuntimeException(e);
     } finally {

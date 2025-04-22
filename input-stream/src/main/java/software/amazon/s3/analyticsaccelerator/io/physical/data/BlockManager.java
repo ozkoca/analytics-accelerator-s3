@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.concurrent.Executor;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,7 @@ public class BlockManager implements Closeable {
   private final PhysicalIOConfiguration configuration;
   private final RangeOptimiser rangeOptimiser;
   private StreamContext streamContext;
+  private final Executor ioThreadPool;
 
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
 
@@ -64,14 +66,16 @@ public class BlockManager implements Closeable {
    * @param telemetry an instance of {@link Telemetry} to use
    * @param metadata the metadata for the object we are reading
    * @param configuration the physicalIO configuration
+   * @param ioThreadPool thread pool
    */
   public BlockManager(
       @NonNull ObjectKey objectKey,
       @NonNull ObjectClient objectClient,
       @NonNull ObjectMetadata metadata,
       @NonNull Telemetry telemetry,
-      @NonNull PhysicalIOConfiguration configuration) {
-    this(objectKey, objectClient, metadata, telemetry, configuration, null);
+      @NonNull PhysicalIOConfiguration configuration,
+      @NonNull Executor ioThreadPool) {
+    this(objectKey, objectClient, metadata, telemetry, configuration, null, ioThreadPool);
   }
 
   /**
@@ -83,6 +87,7 @@ public class BlockManager implements Closeable {
    * @param metadata the metadata for the object
    * @param configuration the physicalIO configuration
    * @param streamContext contains audit headers to be attached in the request header
+   * @param ioThreadPool thread pool
    */
   public BlockManager(
       @NonNull ObjectKey objectKey,
@@ -90,7 +95,8 @@ public class BlockManager implements Closeable {
       @NonNull ObjectMetadata metadata,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
-      StreamContext streamContext) {
+      StreamContext streamContext,
+      @NonNull Executor ioThreadPool) {
     this.objectKey = objectKey;
     this.objectClient = objectClient;
     this.metadata = metadata;
@@ -102,6 +108,7 @@ public class BlockManager implements Closeable {
     this.ioPlanner = new IOPlanner(blockStore);
     this.rangeOptimiser = new RangeOptimiser(configuration);
     this.streamContext = streamContext;
+    this.ioThreadPool = ioThreadPool;
   }
 
   /**
@@ -224,7 +231,8 @@ public class BlockManager implements Closeable {
                     readMode,
                     this.configuration.getBlockReadTimeout(),
                     this.configuration.getBlockReadRetryCount(),
-                    streamContext);
+                    streamContext,
+                    ioThreadPool);
             blockStore.add(block);
           }
         });
