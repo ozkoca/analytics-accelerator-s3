@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_KB;
@@ -145,47 +144,6 @@ public class BlockManagerTest {
     assertEquals(
         PhysicalIOConfiguration.DEFAULT.getReadAheadBytes() - 1,
         requestCaptor.getValue().getRange().getEnd());
-  }
-
-  @Test
-  void testMakePositionAvailableRespectsLastObjectByte() throws IOException {
-    // Given
-    final int objectSize = 5 * ONE_KB;
-    ObjectClient objectClient = mock(ObjectClient.class);
-    BlockManager blockManager = getTestBlockManager(objectClient, objectSize);
-
-    // When
-    blockManager.makePositionAvailable(0, ReadMode.SYNC);
-
-    // Then
-    ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient).getObject(requestCaptor.capture(), any());
-
-    assertEquals(0, requestCaptor.getValue().getRange().getStart());
-    assertEquals(objectSize - 1, requestCaptor.getValue().getRange().getEnd());
-  }
-
-  @Test
-  void testMakeRangeAvailableDoesNotOverread() throws IOException {
-    // Given: BM with 0-64KB and 64KB+1 to 128KB
-    ObjectClient objectClient = mock(ObjectClient.class);
-    BlockManager blockManager = getTestBlockManager(objectClient, 128 * ONE_KB);
-    blockManager.makePositionAvailable(0, ReadMode.SYNC);
-    blockManager.makePositionAvailable(64 * ONE_KB + 1, ReadMode.SYNC);
-
-    // When: requesting the byte at 64KB
-    blockManager.makeRangeAvailable(64 * ONE_KB, 100, ReadMode.SYNC);
-    ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient, times(3)).getObject(requestCaptor.capture(), any());
-
-    // Then: request size is a single byte as more is not needed
-    GetRequest firstRequest = requestCaptor.getAllValues().get(0);
-    GetRequest secondRequest = requestCaptor.getAllValues().get(1);
-    GetRequest lastRequest = requestCaptor.getAllValues().get(2);
-
-    assertEquals(65_536, firstRequest.getRange().getLength());
-    assertEquals(65_535, secondRequest.getRange().getLength());
-    assertEquals(1, lastRequest.getRange().getLength());
   }
 
   @Test

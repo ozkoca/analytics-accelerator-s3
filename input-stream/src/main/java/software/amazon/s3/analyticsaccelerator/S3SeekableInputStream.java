@@ -16,6 +16,8 @@
 package software.amazon.s3.analyticsaccelerator;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
@@ -217,6 +219,41 @@ public class S3SeekableInputStream extends SeekableInputStream {
                     StreamAttributes.range(getContentLength() - length, getContentLength() - 1))
                 .build(),
         () -> logicalIO.readTail(buffer, offset, length));
+  }
+
+  /**
+   * sadsads
+   *
+   * @param position dasd
+   * @param byteBuffers dsadsa
+   * @throws IOException
+   */
+  @Override
+  public void readFullyIntoBuffers(long position, List<ByteBuffer> byteBuffers) throws IOException {
+    long totalLength = 0;
+    // What about overflows??
+    for (ByteBuffer byteBuffer : byteBuffers) {
+      totalLength += byteBuffer.remaining();
+    }
+
+    if (totalLength > Integer.MAX_VALUE) {
+      throw new IllegalArgumentException("Total buffer size exceeds max array size");
+    }
+
+    int length = (int) totalLength;
+    byte[] buffer = new byte[length];
+
+    this.seek(position);
+
+    int bytesRead = this.read(buffer, 0, length);
+    if (bytesRead < length) throw new IOException("Unexpected end of stream");
+
+    int offset = 0;
+    for (ByteBuffer byteBuffer : byteBuffers) {
+      int bufferLength = byteBuffer.remaining();
+      byteBuffer.put(buffer, offset, bufferLength);
+      offset += bufferLength;
+    }
   }
 
   /**

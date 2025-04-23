@@ -17,6 +17,8 @@ package software.amazon.s3.analyticsaccelerator;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.util.List;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
 
 /**
@@ -58,6 +60,16 @@ public abstract class SeekableInputStream extends InputStream {
    * @throws IOException if an error occurs while reading the file
    */
   public abstract int readTail(byte[] buf, int off, int n) throws IOException;
+
+  /**
+   * sdad
+   *
+   * @param position asd
+   * @param byteBuffers das
+   * @throws IOException dsad
+   */
+  public abstract void readFullyIntoBuffers(long position, List<ByteBuffer> byteBuffers)
+      throws IOException;
 
   /**
    * Validates the arguments for a read operation. This method is available to use in all subclasses

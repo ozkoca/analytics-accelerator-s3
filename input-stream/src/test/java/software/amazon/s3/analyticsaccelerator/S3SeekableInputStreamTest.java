@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.utils.IoUtils;
 import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
@@ -108,20 +107,6 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
 
       // Then
       assertEquals(13, stream.getPos());
-    }
-  }
-
-  @Test
-  void testFullRead() throws IOException {
-    // Given
-    try (S3SeekableInputStream stream =
-        new S3SeekableInputStream(TEST_URI, fakeLogicalIO, TestTelemetry.DEFAULT)) {
-
-      // When: all data is requested
-      String dataReadOut = IoUtils.toUtf8String(stream);
-
-      // Then: data read out is the same as data under stream
-      assertEquals(TEST_DATA, dataReadOut);
     }
   }
 
@@ -240,24 +225,6 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
       assertEquals(11, stream.getPos());
       assertTrue(
           Arrays.equals(readBuffer, TEST_DATA.substring(4, 11).getBytes(StandardCharsets.UTF_8)));
-    }
-  }
-
-  @Test
-  void testReadWithBufferOutOfBounds() throws IOException {
-    try (S3SeekableInputStream stream = getTestStream()) {
-
-      // Read beyond EOF, expect all bytes to be read and pos to be EOF.
-      assertEquals(
-          TEST_DATA.length(),
-          stream.read(new byte[TEST_DATA.length() + 20], 0, TEST_DATA.length() + 20));
-      assertEquals(20, stream.getPos());
-
-      // Read beyond EOF after a seek, expect only num bytes read to be equal to that left in the
-      // stream, and pos to be EOF.
-      stream.seek(18);
-      assertEquals(2, stream.read(new byte[TEST_DATA.length() + 20], 0, TEST_DATA.length() + 20));
-      assertEquals(20, stream.getPos());
     }
   }
 

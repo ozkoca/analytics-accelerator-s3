@@ -17,7 +17,9 @@ package software.amazon.s3.analyticsaccelerator.property;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
@@ -108,6 +110,9 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
   public int readTail(byte[] buf, int off, int n) throws IOException {
     return this.delegate.readTail(buf, off, n);
   }
+
+  @Override
+  public void readFullyIntoBuffers(long position, List<ByteBuffer> byteBuffers) {}
 
   @Override
   public int read() throws IOException {

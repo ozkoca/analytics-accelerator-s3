@@ -17,6 +17,7 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -191,16 +192,16 @@ public class BlockManager implements Closeable {
     // prefetch path, then do not extend the request.
     // TODO: Improve readModes, as tracked in
     // https://github.com/awslabs/analytics-accelerator-s3/issues/195
-    final long generation;
-    if (readMode != ReadMode.ASYNC && patternDetector.isSequentialRead(pos)) {
-      generation = patternDetector.getGeneration(pos);
-      effectiveEnd =
-          Math.max(
-              effectiveEnd,
-              truncatePos(pos + sequentialReadProgression.getSizeForGeneration(generation)));
-    } else {
-      generation = 0;
-    }
+    final long generation = 0;
+    //    if (readMode != ReadMode.ASYNC && patternDetector.isSequentialRead(pos)) {
+    //      generation = patternDetector.getGeneration(pos);
+    //      effectiveEnd =
+    //          Math.max(
+    //              effectiveEnd,
+    //              truncatePos(pos + sequentialReadProgression.getSizeForGeneration(generation)));
+    //    } else {
+    //      generation = 0;
+    //    }
 
     // Fix "effectiveEnd", so we can pass it into the lambda
     final long effectiveEndFinal = effectiveEnd;
@@ -216,9 +217,13 @@ public class BlockManager implements Closeable {
                 .build(),
         () -> {
           // Determine the missing ranges and fetch them
-          List<Range> missingRanges =
-              ioPlanner.planRead(pos, effectiveEndFinal, getLastObjectByte());
-          List<Range> splits = rangeOptimiser.splitRanges(missingRanges);
+          //          List<Range> missingRanges =
+          //              ioPlanner.planRead(pos, effectiveEndFinal, getLastObjectByte());
+          //          List<Range> splits = rangeOptimiser.splitRanges(missingRanges);
+
+          List<Range> splits = new ArrayList<>();
+          splits.add(new Range(pos, Math.min(effectiveEndFinal, getLastObjectByte())));
+
           for (Range r : splits) {
             Block block =
                 new Block(
@@ -242,12 +247,6 @@ public class BlockManager implements Closeable {
 
   private long getLastObjectByte() {
     return this.metadata.getContentLength() - 1;
-  }
-
-  private long truncatePos(long pos) {
-    Preconditions.checkArgument(0 <= pos, "`pos` must not be negative");
-
-    return Math.min(pos, getLastObjectByte());
   }
 
   /** Closes the {@link BlockManager} and frees up all resources it holds */

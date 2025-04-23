@@ -16,6 +16,7 @@
 package software.amazon.s3.analyticsaccelerator.model;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import org.junit.platform.commons.util.Preconditions;
 import software.amazon.s3.analyticsaccelerator.SeekableInputStream;
 
@@ -66,6 +67,9 @@ public class InMemorySeekableStream extends SeekableInputStream {
 
     return n;
   }
+
+  @Override
+  public void readFullyIntoBuffers(long position, List<ByteBuffer> byteBuffers) {}
 
   @Override
   public int read() {
