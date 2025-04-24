@@ -27,7 +27,7 @@ public interface ObjectClient extends Closeable {
    * @param headRequest The HEAD request to be sent
    * @return an instance of {@link CompletableFuture} of type {@link ObjectMetadata}
    */
-  CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest);
+  ObjectMetadata headObject(HeadRequest headRequest);
 
   /**
    * Make a getObject request to the object store.
@@ -35,7 +35,7 @@ public interface ObjectClient extends Closeable {
    * @param getRequest The GET request to be sent
    * @return an instance of {@link CompletableFuture} of type {@link ObjectContent}
    */
-  CompletableFuture<ObjectContent> getObject(GetRequest getRequest);
+  ObjectContent getObject(GetRequest getRequest);
 
   /**
    * Make a getObject request to the object store.
@@ -44,5 +44,5 @@ public interface ObjectClient extends Closeable {
    * @param streamContext audit headers to be attached in the request header
    * @return an instance of {@link CompletableFuture} of type {@link ObjectContent}
    */
-  CompletableFuture<ObjectContent> getObject(GetRequest getRequest, StreamContext streamContext);
+  ObjectContent getObject(GetRequest getRequest, StreamContext streamContext);
 }

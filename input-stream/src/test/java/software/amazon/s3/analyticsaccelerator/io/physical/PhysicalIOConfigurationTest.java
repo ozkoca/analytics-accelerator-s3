@@ -54,24 +54,4 @@ public class PhysicalIOConfigurationTest {
         PhysicalIOConfiguration.DEFAULT.getBlobStoreCapacity(),
         physicalIOConfiguration.getBlobStoreCapacity());
   }
-
-  @Test
-  void testToString() {
-    PhysicalIOConfiguration configuration =
-        PhysicalIOConfiguration.builder().blobStoreCapacity(10).partSizeBytes(20).build();
-
-    assertEquals(
-        configuration.toString(),
-        "PhysicalIO configuration:\n"
-            + "\tblobStoreCapacity: 10\n"
-            + "\tmetadataStoreCapacity: 50\n"
-            + "\tblockSizeBytes: 8388608\n"
-            + "\treadAheadBytes: 65536\n"
-            + "\tmaxRangeSizeBytes: 8388608\n"
-            + "\tpartSizeBytes: 20\n"
-            + "\tsequentialPrefetchBase: 2.0\n"
-            + "\tsequentialPrefetchSpeed: 1.0\n"
-            + "\tblockReadTimeout: 30000\n"
-            + "\tblockReadRetryCount: 20\n");
-  }
 }

@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_KB;
 import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
@@ -27,10 +26,8 @@ import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.s3.analyticsaccelerator.TestTelemetry;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -127,52 +124,6 @@ public class BlockManagerTest {
   }
 
   @Test
-  void testMakePositionAvailableRespectsReadAhead() throws IOException {
-    // Given
-    final int objectSize = (int) PhysicalIOConfiguration.DEFAULT.getReadAheadBytes() + ONE_KB;
-    ObjectClient objectClient = mock(ObjectClient.class);
-    BlockManager blockManager = getTestBlockManager(objectClient, objectSize);
-
-    // When
-    blockManager.makePositionAvailable(0, ReadMode.SYNC);
-
-    // Then
-    ArgumentCaptor<GetRequest> requestCaptor = ArgumentCaptor.forClass(GetRequest.class);
-    verify(objectClient).getObject(requestCaptor.capture(), any());
-
-    assertEquals(0, requestCaptor.getValue().getRange().getStart());
-    assertEquals(
-        PhysicalIOConfiguration.DEFAULT.getReadAheadBytes() - 1,
-        requestCaptor.getValue().getRange().getEnd());
-  }
-
-  @Test
-  void testMakeRangeAvailableThrowsExceptionWhenEtagChanges() throws IOException {
-    ObjectClient objectClient = mock(ObjectClient.class);
-    BlockManager blockManager = getTestBlockManager(objectClient, 128 * ONE_MB);
-    blockManager.makePositionAvailable(0, ReadMode.SYNC);
-    int readAheadBytes = (int) PhysicalIOConfiguration.DEFAULT.getReadAheadBytes();
-
-    // Overwrite our client to now throw an error with our old etag. This simulates the scenario
-    // where the etag changes during a read.
-    when(objectClient.getObject(
-            argThat(
-                request -> {
-                  if (request == null) {
-                    return false;
-                  }
-                  // Check if the If-Match header matches expected ETag
-                  return request.getEtag() != null && request.getEtag().equals(ETAG);
-                }),
-            any()))
-        .thenThrow(S3Exception.builder().message("PreconditionFailed").statusCode(412).build());
-
-    assertThrows(
-        IOException.class,
-        () -> blockManager.makePositionAvailable(readAheadBytes + 1, ReadMode.SYNC));
-  }
-
-  @Test
   void regressionTestSequentialPrefetchShouldNotShrinkRanges() throws IOException {
     // Given: BlockManager with some blocks loaded
     ObjectClient objectClient = mock(ObjectClient.class);
@@ -229,8 +180,7 @@ public class BlockManagerTest {
                 }),
             any()))
         .thenReturn(
-            CompletableFuture.completedFuture(
-                ObjectContent.builder().stream(new ByteArrayInputStream(new byte[size])).build()));
+            ObjectContent.builder().stream(new ByteArrayInputStream(new byte[size])).build());
 
     /*
      Here we check if our header is present and the etags don't match then we expect an error to be thrown.

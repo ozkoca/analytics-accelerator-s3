@@ -178,7 +178,7 @@ public class PhysicalIOImpl implements PhysicalIO {
                   .build(),
           () -> {
             LoggingUtil.LogBuilder logger =
-                LoggingUtil.start(LOG, "read")
+                LoggingUtil.start(LOG, "PHYSICAL_IO_READ")
                     .withParam("s3Uri", this.objectKey.getS3URI())
                     .withParam("etag", this.objectKey.getEtag())
                     .withParam("off", off)
@@ -186,10 +186,10 @@ public class PhysicalIOImpl implements PhysicalIO {
                     .withParam("pos", pos)
                     .withThreadInfo()
                     .withTiming();
-            logger.logStart();
+            if (len > 5) logger.logStart();
             int res =
                 blobStore.get(objectKey, this.metadata, streamContext).read(buf, off, len, pos);
-            logger.logEnd();
+            if (len > 5) logger.logEnd();
             return res;
           });
     } catch (Exception e) {
@@ -301,5 +301,7 @@ public class PhysicalIOImpl implements PhysicalIO {
   }
 
   @Override
-  public void close() throws IOException {}
+  public void close() throws IOException {
+    blobStore.close();
+  }
 }

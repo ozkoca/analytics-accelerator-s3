@@ -29,7 +29,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import net.jqwik.api.Example;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
-import net.jqwik.api.lifecycle.AfterContainer;
 import net.jqwik.api.lifecycle.BeforeContainer;
 import net.jqwik.testcontainers.Container;
 import net.jqwik.testcontainers.Testcontainers;
@@ -42,9 +41,7 @@ import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.utils.AttributeMap;
 import software.amazon.awssdk.utils.IoUtils;
-import software.amazon.s3.analyticsaccelerator.S3SdkObjectClient;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStream;
-import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
 import software.amazon.s3.analyticsaccelerator.arbitraries.StreamArbitraries;
 import software.amazon.s3.analyticsaccelerator.model.InMemorySeekableStream;
@@ -72,14 +69,7 @@ public class S3MockVsInMemoryReferenceTest extends StreamArbitraries {
   static void setup() {
     s3Client = createS3ClientV2(S3_MOCK.getHttpsEndpoint());
     // Initialise streams
-    s3SeekableInputStreamFactory =
-        new S3SeekableInputStreamFactory(
-            new S3SdkObjectClient(s3Client), S3SeekableInputStreamConfiguration.DEFAULT);
-  }
 
-  @AfterContainer
-  static void teardown() throws IOException {
-    s3SeekableInputStreamFactory.close();
   }
 
   void setupStreams(int size) throws IOException {

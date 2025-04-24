@@ -25,14 +25,12 @@ import java.util.concurrent.CompletableFuture;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.request.HeadRequest;
 import software.amazon.s3.analyticsaccelerator.request.ObjectClient;
 import software.amazon.s3.analyticsaccelerator.request.ObjectMetadata;
 import software.amazon.s3.analyticsaccelerator.util.S3URI;
-import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
 /** Class responsible for fetching and potentially caching object metadata. */
 @SuppressFBWarnings(
@@ -42,7 +40,7 @@ import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 public class MetadataStore implements Closeable {
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
-  private final Map<S3URI, CompletableFuture<ObjectMetadata>> cache;
+  private final Map<S3URI, ObjectMetadata> cache;
   private final PhysicalIOConfiguration configuration;
 
   private static final Logger LOG = LoggerFactory.getLogger(MetadataStore.class);
@@ -64,10 +62,9 @@ public class MetadataStore implements Closeable {
     this.telemetry = telemetry;
     this.cache =
         Collections.synchronizedMap(
-            new LinkedHashMap<S3URI, CompletableFuture<ObjectMetadata>>() {
+            new LinkedHashMap<S3URI, ObjectMetadata>() {
               @Override
-              protected boolean removeEldestEntry(
-                  final Map.Entry<S3URI, CompletableFuture<ObjectMetadata>> eldest) {
+              protected boolean removeEldestEntry(final Map.Entry<S3URI, ObjectMetadata> eldest) {
                 return this.size() > configuration.getMetadataStoreCapacity();
               }
             });
@@ -83,14 +80,7 @@ public class MetadataStore implements Closeable {
    * @throws IOException if an I/O error occurs
    */
   public ObjectMetadata get(S3URI s3URI) throws IOException {
-    return telemetry.measureJoinCritical(
-        () ->
-            Operation.builder()
-                .name(OPERATION_METADATA_HEAD_JOIN)
-                .attribute(StreamAttributes.uri(s3URI))
-                .build(),
-        this.asyncGet(s3URI),
-        this.configuration.getBlockReadTimeout());
+    return this.asyncGet(s3URI);
   }
 
   /**
@@ -110,17 +100,9 @@ public class MetadataStore implements Closeable {
    * @param s3URI the object to fetch the metadata for
    * @return returns the {@link CompletableFuture} that holds object's metadata.
    */
-  public synchronized CompletableFuture<ObjectMetadata> asyncGet(S3URI s3URI) {
+  public synchronized ObjectMetadata asyncGet(S3URI s3URI) {
     return this.cache.computeIfAbsent(
-        s3URI,
-        uri ->
-            telemetry.measureCritical(
-                () ->
-                    Operation.builder()
-                        .name(OPERATION_METADATA_HEAD_ASYNC)
-                        .attribute(StreamAttributes.uri(s3URI))
-                        .build(),
-                objectClient.headObject(HeadRequest.builder().s3Uri(s3URI).build())));
+        s3URI, uri -> objectClient.headObject(HeadRequest.builder().s3Uri(s3URI).build()));
   }
 
   /**
@@ -132,28 +114,11 @@ public class MetadataStore implements Closeable {
    */
   public synchronized void storeObjectMetadata(S3URI s3URI, ObjectMetadata objectMetadata) {
     if (objectMetadata != null) {
-      this.cache.put(s3URI, CompletableFuture.completedFuture(objectMetadata));
-    }
-  }
-
-  /**
-   * Utility method that cancels a {@link CompletableFuture} ignoring any exceptions.
-   *
-   * @param future an instance of {@link CompletableFuture} to cancel
-   */
-  private void safeCancel(CompletableFuture<ObjectMetadata> future) {
-    if (!future.isDone()) {
-      try {
-        future.cancel(false);
-      } catch (Exception e) {
-        LOG.error("Error cancelling ObjectMetadata future", e);
-      }
+      this.cache.put(s3URI, objectMetadata);
     }
   }
 
   /** Closes the {@link MetadataStore} and frees up all resources it holds. */
   @Override
-  public void close() {
-    this.cache.values().forEach(this::safeCancel);
-  }
+  public void close() {}
 }

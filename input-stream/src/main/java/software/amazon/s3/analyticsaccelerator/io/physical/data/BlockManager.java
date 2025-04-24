@@ -17,16 +17,13 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.Preconditions;
-import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.LoggingUtil;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
@@ -38,7 +35,6 @@ import software.amazon.s3.analyticsaccelerator.request.Range;
 import software.amazon.s3.analyticsaccelerator.request.ReadMode;
 import software.amazon.s3.analyticsaccelerator.request.StreamContext;
 import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
-import software.amazon.s3.analyticsaccelerator.util.StreamAttributes;
 
 /** Implements a Block Manager responsible for planning and scheduling reads on a key. */
 public class BlockManager implements Closeable {
@@ -53,7 +49,7 @@ public class BlockManager implements Closeable {
   private final PhysicalIOConfiguration configuration;
   private final RangeOptimiser rangeOptimiser;
   private StreamContext streamContext;
-  private final Executor ioThreadPool;
+  private final ExecutorService ioThreadPool;
 
   private static final String OPERATION_MAKE_RANGE_AVAILABLE = "block.manager.make.range.available";
 
@@ -75,7 +71,7 @@ public class BlockManager implements Closeable {
       @NonNull ObjectMetadata metadata,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
-      @NonNull Executor ioThreadPool) {
+      @NonNull ExecutorService ioThreadPool) {
     this(objectKey, objectClient, metadata, telemetry, configuration, null, ioThreadPool);
   }
 
@@ -97,7 +93,7 @@ public class BlockManager implements Closeable {
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
       StreamContext streamContext,
-      @NonNull Executor ioThreadPool) {
+      @NonNull ExecutorService ioThreadPool) {
     this.objectKey = objectKey;
     this.objectClient = objectClient;
     this.metadata = metadata;
@@ -203,44 +199,21 @@ public class BlockManager implements Closeable {
     //      generation = 0;
     //    }
 
-    // Fix "effectiveEnd", so we can pass it into the lambda
-    final long effectiveEndFinal = effectiveEnd;
-    this.telemetry.measureStandard(
-        () ->
-            Operation.builder()
-                .name(OPERATION_MAKE_RANGE_AVAILABLE)
-                .attribute(StreamAttributes.uri(this.objectKey.getS3URI()))
-                .attribute(StreamAttributes.etag(this.objectKey.getEtag()))
-                .attribute(StreamAttributes.range(pos, pos + len - 1))
-                .attribute(StreamAttributes.effectiveRange(pos, effectiveEndFinal))
-                .attribute(StreamAttributes.generation(generation))
-                .build(),
-        () -> {
-          // Determine the missing ranges and fetch them
-          //          List<Range> missingRanges =
-          //              ioPlanner.planRead(pos, effectiveEndFinal, getLastObjectByte());
-          //          List<Range> splits = rangeOptimiser.splitRanges(missingRanges);
-
-          List<Range> splits = new ArrayList<>();
-          splits.add(new Range(pos, Math.min(effectiveEndFinal, getLastObjectByte())));
-
-          for (Range r : splits) {
-            Block block =
-                new Block(
-                    objectKey,
-                    objectClient,
-                    telemetry,
-                    r.getStart(),
-                    r.getEnd(),
-                    generation,
-                    readMode,
-                    this.configuration.getBlockReadTimeout(),
-                    this.configuration.getBlockReadRetryCount(),
-                    streamContext,
-                    ioThreadPool);
-            blockStore.add(block);
-          }
-        });
+    Range range = new Range(pos, Math.min(effectiveEnd, getLastObjectByte()));
+    Block block =
+        new Block(
+            objectKey,
+            objectClient,
+            telemetry,
+            range.getStart(),
+            range.getEnd(),
+            generation,
+            readMode,
+            this.configuration.getBlockReadTimeout(),
+            this.configuration.getBlockReadRetryCount(),
+            streamContext,
+            ioThreadPool);
+    blockStore.add(block);
 
     logger.logEnd();
   }

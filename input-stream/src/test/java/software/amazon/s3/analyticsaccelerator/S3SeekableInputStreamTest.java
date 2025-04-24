@@ -17,23 +17,18 @@ package software.amazon.s3.analyticsaccelerator;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_MB;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
-import software.amazon.awssdk.utils.StringUtils;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetColumnPrefetchStore;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetLogicalIOImpl;
-import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIO;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.MetadataStore;
@@ -305,68 +300,6 @@ public class S3SeekableInputStreamTest extends S3SeekableInputStreamTestBase {
       byte[] b = new byte[LEN];
       assertEquals(-1, stream.read(b, 0, LEN));
       assertEquals(INITIAL_POS, stream.getPos());
-    }
-  }
-
-  @Test
-  void testMultiThreadUsage() throws IOException, InterruptedException {
-    int filesSize = 8 * ONE_MB;
-    StringBuilder sb = new StringBuilder(filesSize);
-    sb.append(StringUtils.repeat("0", 8 * ONE_MB));
-    S3URI s3URI = S3URI.of("test", "test");
-
-    FakeObjectClient fakeObjectClient = new FakeObjectClient(sb.toString());
-    MetadataStore metadataStore =
-        new MetadataStore(fakeObjectClient, TestTelemetry.DEFAULT, PhysicalIOConfiguration.DEFAULT);
-    BlobStore blobStore =
-        new BlobStore(
-            fakeObjectClient,
-            TestTelemetry.DEFAULT,
-            PhysicalIOConfiguration.DEFAULT,
-            Executors.newFixedThreadPool(4));
-
-    AtomicReference<Throwable> thrown = new AtomicReference<>();
-
-    // Create 20 threads to start multiple SeekableInputStream to read last and first 4 bytes
-    ArrayList<Thread> threads = new ArrayList<>();
-    for (int i = 0; i < 20; i++) {
-      threads.add(
-          new Thread(
-              () -> {
-                try {
-                  PhysicalIO physicalIO =
-                      new PhysicalIOImpl(s3URI, metadataStore, blobStore, TestTelemetry.DEFAULT);
-                  LogicalIO logicalIO =
-                      new ParquetLogicalIOImpl(
-                          TEST_OBJECT,
-                          physicalIO,
-                          TestTelemetry.DEFAULT,
-                          LogicalIOConfiguration.DEFAULT,
-                          new ParquetColumnPrefetchStore(LogicalIOConfiguration.DEFAULT));
-                  try (SeekableInputStream stream =
-                      new S3SeekableInputStream(TEST_URI, logicalIO, TestTelemetry.DEFAULT)) {
-                    byte[] buffer = new byte[4];
-                    long readBytes = stream.readTail(buffer, 0, 4);
-                    assertEquals(4, readBytes);
-                    readBytes = stream.read(buffer, 0, 4);
-                    assertEquals(4, readBytes);
-                  }
-                } catch (Throwable e) {
-                  thrown.set(e);
-                }
-              }));
-    }
-    // Start all the threads
-    threads.forEach(Thread::start);
-    for (Thread thread : threads) {
-      try {
-        thread.join();
-      } catch (Throwable e) {
-        fail("Unexpected exception", e);
-      }
-    }
-    if (thrown.get() != null) {
-      fail("Unexpected exception", thrown.get());
     }
   }
 

@@ -15,12 +15,6 @@
  */
 package software.amazon.s3.analyticsaccelerator.util;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeoutException;
-import software.amazon.s3.analyticsaccelerator.request.GetRequest;
-import software.amazon.s3.analyticsaccelerator.request.ObjectContent;
-import software.amazon.s3.analyticsaccelerator.request.StreamContext;
-
 public class FakeStuckObjectClient extends FakeObjectClient {
 
   /**
@@ -30,13 +24,5 @@ public class FakeStuckObjectClient extends FakeObjectClient {
    */
   public FakeStuckObjectClient(String data) {
     super(data);
-  }
-
-  @Override
-  public CompletableFuture<ObjectContent> getObject(
-      GetRequest getRequest, StreamContext streamContext) {
-    CompletableFuture<ObjectContent> failedFuture = new CompletableFuture<>();
-    failedFuture.completeExceptionally(new TimeoutException("Request timed out"));
-    return failedFuture;
   }
 }

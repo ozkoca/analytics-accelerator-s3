@@ -19,7 +19,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Getter;
@@ -55,14 +54,13 @@ public class FakeObjectClient implements ObjectClient {
   }
 
   @Override
-  public CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest) {
+  public ObjectMetadata headObject(HeadRequest headRequest) {
     headRequestCount.incrementAndGet();
-    return CompletableFuture.completedFuture(
-        ObjectMetadata.builder().contentLength(this.content.length()).etag(this.etag).build());
+    return ObjectMetadata.builder().contentLength(this.content.length()).etag(this.etag).build();
   }
 
   @Override
-  public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
+  public ObjectContent getObject(GetRequest getRequest) {
     if (!getRequest.getEtag().equals(this.etag)) {
       throw S3Exception.builder()
           .message("At least one of the pre-conditions you specified did not hold")
@@ -73,12 +71,10 @@ public class FakeObjectClient implements ObjectClient {
   }
 
   @Override
-  public CompletableFuture<ObjectContent> getObject(
-      GetRequest getRequest, StreamContext streamContext) {
+  public ObjectContent getObject(GetRequest getRequest, StreamContext streamContext) {
     getRequestCount.incrementAndGet();
     requestedRanges.add(getRequest.getRange());
-    return CompletableFuture.completedFuture(
-        ObjectContent.builder().stream(getTestInputStream(getRequest.getRange())).build());
+    return ObjectContent.builder().stream(getTestInputStream(getRequest.getRange())).build();
   }
 
   @Override

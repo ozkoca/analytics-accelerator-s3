@@ -20,7 +20,7 @@ import java.io.Closeable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.physical.PhysicalIOConfiguration;
@@ -35,11 +35,11 @@ import software.amazon.s3.analyticsaccelerator.util.ObjectKey;
     justification =
         "Inner class is created very infrequently, and fluency justifies the extra pointer")
 public class BlobStore implements Closeable {
-  private final Map<ObjectKey, Blob> blobMap;
+  private Map<ObjectKey, Blob> blobMap;
   private final ObjectClient objectClient;
   private final Telemetry telemetry;
   private final PhysicalIOConfiguration configuration;
-  private final Executor ioThreadPool;
+  private final ExecutorService ioThreadPool;
 
   /**
    * Construct an instance of BlobStore.
@@ -53,7 +53,7 @@ public class BlobStore implements Closeable {
       @NonNull ObjectClient objectClient,
       @NonNull Telemetry telemetry,
       @NonNull PhysicalIOConfiguration configuration,
-      @NonNull Executor ioThreadPool) {
+      @NonNull ExecutorService ioThreadPool) {
     this.objectClient = objectClient;
     this.telemetry = telemetry;
     this.blobMap =
@@ -116,6 +116,6 @@ public class BlobStore implements Closeable {
   /** Closes the {@link BlobStore} and frees up all resources it holds. */
   @Override
   public void close() {
-    blobMap.forEach((k, v) -> v.close());
+    blobMap = null;
   }
 }

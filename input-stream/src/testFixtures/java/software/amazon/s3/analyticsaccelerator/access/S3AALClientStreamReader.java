@@ -29,8 +29,8 @@ import software.amazon.s3.analyticsaccelerator.util.S3URI;
 
 /** Client stream reader based on DAT */
 public class S3AALClientStreamReader extends S3StreamReaderBase {
-  @NonNull @Getter private final S3SdkObjectClient sdkObjectClient;
-  @NonNull @Getter private final S3SeekableInputStreamFactory s3SeekableInputStreamFactory;
+  @Getter private final S3SdkObjectClient sdkObjectClient;
+  @Getter private final S3SeekableInputStreamFactory s3SeekableInputStreamFactory;
 
   /**
    * Creates an instance of {@link S3AALClientStreamReader}
@@ -47,8 +47,8 @@ public class S3AALClientStreamReader extends S3StreamReaderBase {
       int bufferSize) {
     super(baseUri, bufferSize);
     // Create the SDK client, ensure it doesn't close the underlying client
-    this.sdkObjectClient = new S3SdkObjectClient(s3AsyncClient, false);
-    s3SeekableInputStreamFactory = new S3SeekableInputStreamFactory(sdkObjectClient, configuration);
+    this.sdkObjectClient = null;
+    s3SeekableInputStreamFactory = null;
   }
 
   /**

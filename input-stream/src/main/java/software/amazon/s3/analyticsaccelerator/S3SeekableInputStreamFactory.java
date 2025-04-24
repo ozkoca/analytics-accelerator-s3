@@ -16,7 +16,7 @@
 package software.amazon.s3.analyticsaccelerator;
 
 import java.io.IOException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -26,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import software.amazon.s3.analyticsaccelerator.common.NamedThreadFactory;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
 import software.amazon.s3.analyticsaccelerator.io.logical.LogicalIO;
-import software.amazon.s3.analyticsaccelerator.io.logical.impl.DefaultLogicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetColumnPrefetchStore;
 import software.amazon.s3.analyticsaccelerator.io.logical.impl.ParquetLogicalIOImpl;
 import software.amazon.s3.analyticsaccelerator.io.physical.data.BlobStore;
@@ -56,7 +55,8 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
   private final BlobStore objectBlobStore;
   private final Telemetry telemetry;
   private final ObjectFormatSelector objectFormatSelector;
-  private final Executor ioThreadPool;
+  private final ExecutorService ioThreadPool;
+  private final ObjectClient objectClient;
 
   private static final Logger LOG = LoggerFactory.getLogger(S3SeekableInputStreamFactory.class);
 
@@ -83,6 +83,7 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
     this.objectBlobStore =
         new BlobStore(
             objectClient, telemetry, configuration.getPhysicalIOConfiguration(), ioThreadPool);
+    this.objectClient = objectClient;
   }
 
   /**
@@ -130,31 +131,22 @@ public class S3SeekableInputStreamFactory implements AutoCloseable {
 
   LogicalIO createLogicalIO(S3URI s3URI, OpenStreamInformation openStreamInformation)
       throws IOException {
-    switch (objectFormatSelector.getObjectFormat(s3URI, openStreamInformation)) {
-      case PARQUET:
-        return new ParquetLogicalIOImpl(
-            s3URI,
-            new PhysicalIOImpl(
-                s3URI,
-                objectMetadataStore,
-                objectBlobStore,
-                telemetry,
-                openStreamInformation.getStreamContext()),
-            telemetry,
-            configuration.getLogicalIOConfiguration(),
-            parquetColumnPrefetchStore);
 
-      default:
-        return new DefaultLogicalIOImpl(
+    return new ParquetLogicalIOImpl(
+        s3URI,
+        new PhysicalIOImpl(
             s3URI,
-            new PhysicalIOImpl(
-                s3URI,
-                objectMetadataStore,
-                objectBlobStore,
+            objectMetadataStore,
+            new BlobStore(
+                this.objectClient,
                 telemetry,
-                openStreamInformation.getStreamContext()),
-            telemetry);
-    }
+                configuration.getPhysicalIOConfiguration(),
+                ioThreadPool),
+            telemetry,
+            openStreamInformation.getStreamContext()),
+        telemetry,
+        configuration.getLogicalIOConfiguration(),
+        parquetColumnPrefetchStore);
   }
 
   void storeObjectMetadata(S3URI s3URI, ObjectMetadata metadata) {

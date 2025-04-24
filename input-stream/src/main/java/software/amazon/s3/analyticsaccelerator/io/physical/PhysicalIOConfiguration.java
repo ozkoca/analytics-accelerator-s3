@@ -30,8 +30,8 @@ import software.amazon.s3.analyticsaccelerator.io.physical.prefetcher.Sequential
 @Builder
 @EqualsAndHashCode
 public class PhysicalIOConfiguration {
-  private static final int DEFAULT_CAPACITY_BLOB_STORE = 50;
-  private static final int DEFAULT_CAPACITY_METADATA_STORE = 50;
+  private static final int DEFAULT_CAPACITY_BLOB_STORE = 120;
+  private static final int DEFAULT_CAPACITY_METADATA_STORE = 120;
   private static final boolean DEFAULT_USE_SINGLE_CACHE = true;
   private static final long DEFAULT_BLOCK_SIZE_BYTES = 8 * ONE_MB;
   private static final long DEFAULT_READ_AHEAD_BYTES = 64 * ONE_KB;

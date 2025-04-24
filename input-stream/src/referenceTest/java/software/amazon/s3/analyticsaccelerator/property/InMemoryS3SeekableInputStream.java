@@ -21,7 +21,6 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamConfiguration;
 import software.amazon.s3.analyticsaccelerator.S3SeekableInputStreamFactory;
@@ -64,19 +63,17 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
     }
 
     @Override
-    public CompletableFuture<ObjectMetadata> headObject(HeadRequest headRequest) {
-      return CompletableFuture.completedFuture(
-          ObjectMetadata.builder().contentLength(size).etag(etag).build());
+    public ObjectMetadata headObject(HeadRequest headRequest) {
+      return ObjectMetadata.builder().contentLength(size).etag(etag).build();
     }
 
     @Override
-    public CompletableFuture<ObjectContent> getObject(GetRequest getRequest) {
+    public ObjectContent getObject(GetRequest getRequest) {
       return getObject(getRequest, null);
     }
 
     @Override
-    public CompletableFuture<ObjectContent> getObject(
-        GetRequest getRequest, StreamContext streamContext) {
+    public ObjectContent getObject(GetRequest getRequest, StreamContext streamContext) {
       int start = 0;
       int end = size - 1;
 
@@ -86,8 +83,7 @@ public class InMemoryS3SeekableInputStream extends SeekableInputStream {
       }
 
       byte[] range = Arrays.copyOfRange(this.content, start, end + 1);
-      return CompletableFuture.completedFuture(
-          ObjectContent.builder().stream(new ByteArrayInputStream(range)).build());
+      return ObjectContent.builder().stream(new ByteArrayInputStream(range)).build();
     }
 
     @Override
