@@ -16,6 +16,8 @@
 package software.amazon.s3.analyticsaccelerator.io.physical.impl;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -196,6 +198,11 @@ public class PhysicalIOImpl implements PhysicalIO {
       handleOperationExceptions(e);
       throw e;
     }
+  }
+
+  @Override
+  public void readFullyIntoBuffers(long pos, int len, List<ByteBuffer> buffers) throws IOException {
+    blobStore.get(objectKey, this.metadata, streamContext).readFullyIntoBuffers(pos, len, buffers);
   }
 
   /**

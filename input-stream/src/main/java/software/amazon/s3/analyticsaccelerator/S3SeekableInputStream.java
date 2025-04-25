@@ -231,7 +231,7 @@ public class S3SeekableInputStream extends SeekableInputStream {
   @Override
   public void readFullyIntoBuffers(long position, List<ByteBuffer> byteBuffers) throws IOException {
     long totalLength = 0;
-    // What about overflows??
+
     for (ByteBuffer byteBuffer : byteBuffers) {
       totalLength += byteBuffer.remaining();
     }
@@ -241,19 +241,10 @@ public class S3SeekableInputStream extends SeekableInputStream {
     }
 
     int length = (int) totalLength;
-    byte[] buffer = new byte[length];
-
     this.seek(position);
 
-    int bytesRead = this.read(buffer, 0, length);
-    if (bytesRead < length) throw new IOException("Unexpected end of stream");
-
-    int offset = 0;
-    for (ByteBuffer byteBuffer : byteBuffers) {
-      int bufferLength = byteBuffer.remaining();
-      byteBuffer.put(buffer, offset, bufferLength);
-      offset += bufferLength;
-    }
+    this.logicalIO.readFullyIntoBuffers(position, length, byteBuffers);
+    advancePosition(length);
   }
 
   /**

@@ -17,6 +17,8 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
 import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,6 +132,21 @@ public class Blob implements Closeable {
     }
     if (len > 5) logger.logEnd();
     return numBytesRead;
+  }
+
+  /**
+   * sadsa
+   *
+   * @param pos sad
+   * @param len dsad
+   * @param buffers sad
+   * @throws IOException sad
+   */
+  public void readFullyIntoBuffers(long pos, int len, List<ByteBuffer> buffers) throws IOException {
+    blockManager.makeRangeAvailable(pos, len, buffers);
+    Block nextBlock =
+        blockManager.getBlock(pos).orElseThrow(() -> new IllegalStateException("error"));
+    nextBlock.readBuffered();
   }
 
   /**

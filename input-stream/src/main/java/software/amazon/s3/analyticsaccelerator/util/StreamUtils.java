@@ -20,6 +20,8 @@ import static software.amazon.s3.analyticsaccelerator.util.Constants.ONE_KB;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,5 +126,70 @@ public class StreamUtils {
       inStream.close();
     }
     return outStream.toByteArray();
+  }
+
+  /**
+   * sadsadsa
+   *
+   * @param buffers asd
+   * @param objectContent dsa
+   * @param objectKey dad
+   * @param range sad
+   * @throws IOException asds
+   */
+  public static void fillBuffers(
+      List<ByteBuffer> buffers, ObjectContent objectContent, ObjectKey objectKey, Range range)
+      throws IOException {
+    long totalCapacity = buffers.stream().mapToLong(ByteBuffer::remaining).sum();
+    long expectedSize = range.getEnd() - range.getStart() + 1;
+
+    LOG.info(
+        "fillBuffers- uri: {}, start: {}, end: {}, totalCapacity:{}, expectedSize: {}",
+        objectKey.s3URI,
+        range.getStart(),
+        range.getEnd(),
+        totalCapacity,
+        expectedSize);
+    LoggingUtil.LogBuilder logger =
+        LoggingUtil.start(LOG, "fillBuffers:")
+            .withParam("s3Uri", objectKey.s3URI)
+            .withParam("start", range.getStart())
+            .withParam("end", range.getEnd())
+            .withThreadInfo()
+            .withTiming();
+    logger.logStart();
+    try (InputStream inStream = objectContent.getStream()) {
+      int bufferIndex = 0;
+
+      while (bufferIndex < buffers.size()) {
+        ByteBuffer currentBuffer = buffers.get(bufferIndex);
+
+        if (!currentBuffer.hasRemaining()) {
+          bufferIndex++;
+          continue;
+        }
+
+        if (!currentBuffer.hasArray()) {
+          throw new IllegalArgumentException("ByteBuffer does not have a backing array");
+        }
+
+        byte[] backingArray = currentBuffer.array();
+        int position = currentBuffer.position();
+        int arrayOffset = currentBuffer.arrayOffset() + position;
+        int remaining = currentBuffer.remaining();
+
+        int bytesToRead = Math.min(BUFFER_SIZE, remaining);
+
+        int bytesRead = inStream.read(backingArray, arrayOffset, bytesToRead);
+
+        if (bytesRead == -1) {
+          break; // EOF
+        }
+
+        currentBuffer.position(position + bytesRead);
+      }
+
+      logger.logEnd();
+    }
   }
 }

@@ -16,6 +16,8 @@
 package software.amazon.s3.analyticsaccelerator.io.logical.impl;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
 import lombok.NonNull;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Operation;
 import software.amazon.s3.analyticsaccelerator.common.telemetry.Telemetry;
@@ -108,6 +110,11 @@ public class DefaultLogicalIOImpl implements LogicalIO {
                     StreamAttributes.logicalIORelativeTimestamp(System.nanoTime() - birthTimestamp))
                 .build(),
         () -> physicalIO.readTail(buf, off, len));
+  }
+
+  @Override
+  public void readFullyIntoBuffers(long pos, int len, List<ByteBuffer> buffers) throws IOException {
+    physicalIO.readFullyIntoBuffers(pos, len, buffers);
   }
 
   /**

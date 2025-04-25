@@ -17,6 +17,8 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.*;
 import lombok.Getter;
 import lombok.NonNull;
@@ -42,6 +44,7 @@ import software.amazon.s3.analyticsaccelerator.util.StreamUtils;
 public class Block implements Closeable {
   private Future<ObjectContent> source;
   private Future<byte[]> data;
+  private Future<?> bufferData;
   private final ObjectKey objectKey;
   private final Range range;
   private final Telemetry telemetry;
@@ -52,6 +55,7 @@ public class Block implements Closeable {
   private final long readTimeout;
   private final int readRetryCount;
   private final ExecutorService ioThreadPool;
+  private List<ByteBuffer> buffers = null;
 
   @Getter private final long start;
   @Getter private final long end;
@@ -155,8 +159,62 @@ public class Block implements Closeable {
     generateSourceAndData();
   }
 
+  /**
+   * sadsa
+   *
+   * @param objectKey sad
+   * @param objectClient as
+   * @param telemetry sad
+   * @param start asd
+   * @param end sad
+   * @param generation sad
+   * @param readMode asd
+   * @param readTimeout as
+   * @param readRetryCount rewg
+   * @param streamContext reg
+   * @param ioThreadPool grg
+   * @param buffers gegrer
+   * @throws IOException hthr
+   */
+  public Block(
+      @NonNull ObjectKey objectKey,
+      @NonNull ObjectClient objectClient,
+      @NonNull Telemetry telemetry,
+      long start,
+      long end,
+      long generation,
+      @NonNull ReadMode readMode,
+      long readTimeout,
+      int readRetryCount,
+      StreamContext streamContext,
+      ExecutorService ioThreadPool,
+      List<ByteBuffer> buffers)
+      throws IOException {
+
+    this.start = start;
+    this.end = end;
+    this.generation = generation;
+    this.telemetry = telemetry;
+    this.objectKey = objectKey;
+    this.range = new Range(start, end);
+    this.objectClient = objectClient;
+    this.streamContext = streamContext;
+    this.readMode = readMode;
+    this.referrer = new Referrer(range.toHttpString(), readMode);
+    this.readTimeout = readTimeout;
+    this.readRetryCount = readRetryCount;
+    this.ioThreadPool = ioThreadPool;
+    this.buffers = buffers;
+
+    generateSourceAndData();
+  }
+
+  private boolean isUsingByteBuffers() {
+    return this.buffers != null;
+  }
+
   /** Method to help construct source and data */
-  private void generateSourceAndData() throws IOException {
+  private void generateSourceAndData() {
     GetRequest getRequest =
         GetRequest.builder()
             .s3Uri(this.objectKey.getS3URI())
@@ -173,22 +231,45 @@ public class Block implements Closeable {
             .withTiming();
     logger.logStart();
 
-    this.data =
-        ioThreadPool.submit(
-            () -> {
-              LoggingUtil.LogBuilder logger2 =
-                  LoggingUtil.start(LOG, "STARTING GET WITH SYNC CLIENT")
-                      .withParam("start of block", start)
-                      .withParam("end of block", end)
-                      .withParam("S3URI", this.objectKey.getS3URI())
-                      .withThreadInfo()
-                      .withTiming();
-              logger2.logStart();
-              ObjectContent objectContent = objectClient.getObject(getRequest, streamContext);
-              byte[] data = StreamUtils.toByteArray(objectContent, objectKey, range, readTimeout);
-              logger2.logEnd();
-              return data;
-            });
+    if (isUsingByteBuffers()) {
+      this.bufferData =
+          ioThreadPool.submit(
+              () -> {
+                LoggingUtil.LogBuilder logger2 =
+                    LoggingUtil.start(LOG, "STARTING GET WITH SYNC CLIENT")
+                        .withParam("start of block", start)
+                        .withParam("end of block", end)
+                        .withParam("S3URI", this.objectKey.getS3URI())
+                        .withThreadInfo()
+                        .withTiming();
+                logger2.logStart();
+                ObjectContent objectContent = objectClient.getObject(getRequest, streamContext);
+                try {
+                  StreamUtils.fillBuffers(this.buffers, objectContent, objectKey, range);
+                } catch (IOException e) {
+                  throw new RuntimeException(e);
+                }
+                logger2.logEnd();
+              });
+    } else {
+      this.data =
+          ioThreadPool.submit(
+              () -> {
+                LoggingUtil.LogBuilder logger2 =
+                    LoggingUtil.start(LOG, "STARTING GET WITH SYNC CLIENT")
+                        .withParam("start of block", start)
+                        .withParam("end of block", end)
+                        .withParam("S3URI", this.objectKey.getS3URI())
+                        .withThreadInfo()
+                        .withTiming();
+                logger2.logStart();
+                ObjectContent objectContent = objectClient.getObject(getRequest, streamContext);
+                byte[] data = StreamUtils.toByteArray(objectContent, objectKey, range, readTimeout);
+                logger2.logEnd();
+                return data;
+              });
+    }
+
     logger.logEnd();
   }
 
@@ -254,6 +335,20 @@ public class Block implements Closeable {
     }
 
     return bytesToCopy;
+  }
+
+  /**
+   * sadsad
+   *
+   * @throws IOException sad
+   */
+  public void readBuffered() throws IOException {
+    try {
+      this.bufferData.get();
+    } catch (Exception e) {
+      LOG.error("Couldn't read block", e);
+      throw new IOException("error reading data", e);
+    }
   }
 
   /**

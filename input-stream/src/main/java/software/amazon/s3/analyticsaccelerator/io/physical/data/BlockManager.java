@@ -17,6 +17,8 @@ package software.amazon.s3.analyticsaccelerator.io.physical.data;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.concurrent.ExecutorService;
@@ -216,6 +218,39 @@ public class BlockManager implements Closeable {
     blockStore.add(block);
 
     logger.logEnd();
+  }
+
+  /**
+   * wiofjioeiew
+   *
+   * @param pos few
+   * @param len fewf
+   * @param buffers few
+   * @throws IOException fewrgewg
+   */
+  public synchronized void makeRangeAvailable(long pos, long len, List<ByteBuffer> buffers)
+      throws IOException {
+    if (isRangeAvailable(pos, len)) {
+      return;
+    }
+    long effectiveEnd = pos + Math.max(len, configuration.getReadAheadBytes()) - 1;
+    final long generation = 0;
+    Range range = new Range(pos, Math.min(effectiveEnd, getLastObjectByte()));
+    Block block =
+        new Block(
+            objectKey,
+            objectClient,
+            telemetry,
+            range.getStart(),
+            range.getEnd(),
+            generation,
+            ReadMode.SYNC,
+            this.configuration.getBlockReadTimeout(),
+            this.configuration.getBlockReadRetryCount(),
+            streamContext,
+            ioThreadPool,
+            buffers);
+    blockStore.add(block);
   }
 
   private long getLastObjectByte() {
